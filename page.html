@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>AI Chatbot</title>
     <style>
     body {
@@ -13,43 +13,56 @@
         flex-direction: column;
         height: 100vh;
     }
+
     header {
         background: #4CAF50;
         color: white;
         padding: 1rem;
         text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
     #chat-container {
         flex: 1;
         padding: 1rem;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
     }
+
     .message {
         margin: 0.5rem 0;
-        padding: 0.75rem;
+        padding: 0.75rem 1rem;
         border-radius: 8px;
         max-width: 70%;
+        word-wrap: break-word;
     }
+
     .user {
         background: #d1e7dd;
         align-self: flex-end;
     }
+
     .bot {
         background: #e2e3e5;
         align-self: flex-start;
     }
+
     #input-container {
         display: flex;
-        padding: 0.5rem;
+        padding: 0.75rem;
         background: #fff;
         border-top: 1px solid #ccc;
     }
+
     #user-input {
         flex: 1;
         padding: 0.5rem;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-size: 1rem;
     }
+
     button {
         margin-left: 0.5rem;
         padding: 0.5rem 1rem;
@@ -58,9 +71,11 @@
         color: white;
         border-radius: 4px;
         cursor: pointer;
+        font-size: 1rem;
     }
+
     button:hover {
-        background: #45a049;
+        
     }
     </style>
 </head>
@@ -72,43 +87,65 @@
     <div id="chat-container"></div>
 
     <div id="input-container">
-    <input type="text" id="user-input" placeholder="Type your question..." />
-    <button onclick="sendMessage()">Send</button>
+        <input type="text" id="user-input" placeholder="Type your question..." />
+        <button onclick="sendMessage()">Send</button>
     </div>
 
     <script>
-    async function sendMessage() {
         const input = document.getElementById("user-input");
+
+        input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+        });
+
+        async function sendMessage() {
         const message = input.value.trim();
         if (!message) return;
 
-      // Display user message
         addMessage(message, "user");
         input.value = "";
-
-      // Send to backend (adjust URL to your Python server endpoint)
+        
         try {
             const response = await fetch("http://localhost:5000/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question: message })
             });
+
             const data = await response.json();
 
-            // Display bot response
-            addMessage(data.answer, "bot");
-            } catch (error) {
-            addMessage("Error: Could not connect to server.", "bot");
+            // Start with the metadata block (already HTML from backend)
+            let botHtml = data.sources || "";
+
+            // Add sub ATA codes below the metadata
+            if (Array.isArray(data.sub_ata_codes) && data.sub_ata_codes.length > 0) {
+                botHtml += `
+                    <div style="margin-top:10px;">
+                        <p><b>Sub ATA Codes:</b></p>
+                        <ul>
+                            ${data.sub_ata_codes.map(code => `<li>${code}</li>`).join("")}
+                        </ul>
+                    </div>
+                `;
             }
+
+            addMessage(botHtml, "bot");
+
+        } catch (error) {
+            addMessage("Error: Could not connect to server.", "bot");
+        }
         }
 
         function addMessage(text, sender) {
-            const container = document.getElementById("chat-container");
-            const msg = document.createElement("div");
-            msg.className = "message " + sender;
-            msg.innerHTML = text;
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
+        const container = document.getElementById("chat-container");
+        const msg = document.createElement("div");
+        msg.className = "message " + sender;
+        msg.innerHTML = text;
+        container.appendChild(msg);
+        container.scrollTop = container.scrollHeight;
         }
     </script>
 </body>
